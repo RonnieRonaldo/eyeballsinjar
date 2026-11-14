@@ -1,5 +1,15 @@
 {
   "name": "eyeballsinjar",
   "compatibility_date": "2026-11-10",
-  "assets": { "directory": "./public" }
+  "main": "./worker.js",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  "r2_buckets": [
+    {
+      "binding": "DOWNLOADS",
+      "bucket_name": "eyeballsinjar-downloads"
+    }
+  ]
 }
