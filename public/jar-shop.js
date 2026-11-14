@@ -4,12 +4,25 @@ const hex = bytes => Array.from(bytes, b => b.toString(16).padStart(2, "0")).joi
 const buys = document.querySelectorAll("[data-buy]");
 let initialized = false;
 
-async function buy() {
+const notice = document.createElement("p");
+notice.setAttribute("role", "status");
+let outcome = "";
+async function buy(event) {
+  event.currentTarget.after(notice);
+  outcome = "";
+  notice.textContent = "Opening checkout…";
   buys.forEach(b => b.disabled = true);
   try {
     if (!(await fetch("/api/store-ready", { cache: "no-store" })).ok) throw Error();
     if (!initialized) {
       Paddle.Initialize({ token, eventCallback(event) {
+        const messages = {
+          "checkout.payment.failed": "Payment unsuccessful. You can try another payment method in checkout.",
+          "checkout.payment.error": "Payment could not be confirmed. If you received a receipt, contact us before paying again.",
+          "checkout.error": "Checkout is unavailable. Please try again later."
+        };
+        if (messages[event.name]) outcome = notice.textContent = messages[event.name];
+        if (event.name === "checkout.closed" && !outcome) notice.textContent = "Checkout closed.";
         if (event.name === "checkout.completed") {
           localStorage.setItem("jar-receipt", JSON.stringify({ id: event.data.transaction_id, claim: event.data.custom_data?.jar_claim || sessionStorage.getItem("jar-current-claim") }));
           location.assign("/jar-download.html");
@@ -24,7 +37,7 @@ async function buy() {
     Paddle.Checkout.open({ items: [{ priceId: price, quantity: 1 }], customData: { jar_claim: claim } });
     sessionStorage.setItem("jar-current-claim", claim);
   } catch {
-    alert("Checkout is temporarily unavailable. Please try again later.");
+    notice.textContent = "Checkout is temporarily unavailable. Please try again later.";
   } finally {
     buys.forEach(b => b.disabled = false);
   }

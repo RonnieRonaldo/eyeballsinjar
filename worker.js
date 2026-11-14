@@ -30,6 +30,7 @@ export default {
       if (data.custom_data?.jar_claim !== hash || !data.items.some(item => item.price.id === price)) {
         return message("This download belongs to another order.", 403);
       }
+      if (data.status === "canceled") return message("This order was canceled.", 410);
       if (!["paid", "completed"].includes(data.status)) return message("Your payment is still being verified. Please try again shortly.", 409);
       const pdf = await env.DOWNLOADS.get(file);
       if (!pdf) return message("Your PDF is temporarily unavailable. Please try again.", 503);

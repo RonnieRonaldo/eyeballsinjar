@@ -2,33 +2,48 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Your printable jars | Eyeballs in Jar</title><link rel="stylesheet" href="/style.css"></head>
 <body><header><a class="brand" href="/">Eyeballs <i>in</i> Jar</a></header><main><section>
 <h1>Your printable jars</h1><p>Eyeballs, brains and worms in one PDF. Save your copy before closing this page.</p>
-<button id="download">Download your PDF</button><p id="status" role="status"></p><a href="/contact.html">Download help</a>
+<a id="file" download="printable-specimen-jars.pdf" hidden>Download your PDF</a><button id="download" hidden>Check my order again</button><p id="status" role="status"></p><a href="/contact.html">Download help</a>
 </section></main><script>
 const button = document.querySelector("#download");
 const statusText = document.querySelector("#status");
-button.onclick = async () => {
+async function verify() {
+  button.hidden = true;
   button.disabled = true;
   statusText.textContent = "Checking your order…";
   try {
     const receipt = JSON.parse(localStorage.getItem("jar-receipt"));
     const proof = receipt && localStorage.getItem("jar-proof-" + receipt.claim);
     if (!proof) throw Error("Open this page in the browser you used to pay, or contact us with your receipt.");
-    const response = await fetch("/api/download", { method: "POST", body: new URLSearchParams({ transaction: receipt.id, proof }) });
-    if (!response.ok) throw Error(await response.text());
-    if (!response.headers.get("Content-Type")?.includes("application/pdf")) throw Error("The PDF is temporarily unavailable.");
-    const url = URL.createObjectURL(await response.blob());
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "printable-specimen-jars.pdf";
-    document.body.append(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
-    statusText.textContent = "Your download has started. You can download it again here.";
+    const pauses = [0, 2000, 4000, 8000, 16000];
+    for (const [i, delay] of pauses.entries()) {
+      if (delay) await new Promise(resolve => setTimeout(resolve, delay));
+      statusText.textContent = "Checking payment and preparing your PDF (" + (i + 1) + " of 5)…";
+      let response;
+      let blob;
+      try {
+        response = await fetch("/api/download", {
+          method: "POST", body: new URLSearchParams({ transaction: receipt.id, proof }),
+          signal: AbortSignal.timeout(60000)
+        });
+        if (response.ok && response.headers.get("Content-Type")?.includes("application/pdf")) blob = await response.blob();
+      } catch { /* A temporary connection failure can be retried. */ }
+      if (blob) {
+        const link = document.querySelector("#file");
+        link.href = URL.createObjectURL(blob);
+        link.hidden = false;
+        statusText.textContent = "Payment confirmed. Click Download your PDF to save your printable set.";
+        return;
+      }
+      if (response && [400, 403, 405, 410].includes(response.status)) throw Error(await response.text());
+    }
+    throw Error("Your download is not ready yet. Check again here or contact us with your receipt. You do not need to pay again.");
   } catch (error) {
+    button.hidden = false;
     statusText.textContent = error.message || "Please try again or contact us with your receipt.";
   } finally {
     button.disabled = false;
   }
-};
+}
+button.onclick = verify;
+verify();
 </script></body></html>
