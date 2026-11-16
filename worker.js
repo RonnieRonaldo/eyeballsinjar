@@ -6,9 +6,37 @@ function message(text, status) {
   return new Response(text, { status, headers: privateHeaders });
 }
 
+async function receiveContact(request, env) {
+  if (request.method !== "POST") return message("Please submit the contact form.", 405);
+  if (request.headers.get("Origin") !== new URL(request.url).origin) return message("Please use the contact page.", 403);
+  const length = Number(request.headers.get("Content-Length"));
+  if (!length || length > 48000) return message("Please use a shorter message.", 413);
+  if (!request.headers.get("Content-Type")?.startsWith("application/x-www-form-urlencoded")) return message("Invalid form.", 415);
+  try {
+    const form = await request.formData();
+    if (form.get("website")) return message("Received.", 200);
+    const email = String(form.get("email") || "").trim();
+    const body = String(form.get("message") || "").trim();
+    const topic = form.get("topic");
+    if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
+        !body || body.length > 3000 ||
+        !["Printing and jar sizes", "Payment or download help", "Other question"].includes(topic)) {
+      return message("Please check the form fields.", 400);
+    }
+    const received = new Date().toISOString();
+    const key = "contact/" + received.replaceAll(":", "-") + "-" + crypto.randomUUID() + ".json";
+    await env.DOWNLOADS.put(key, JSON.stringify({received, email, topic, message: body}, null, 2),
+      {httpMetadata: {contentType: "application/json"}});
+    return message("Thank you. Your message has been received.", 201);
+  } catch {
+    return message("Your message could not be saved. Please try again.", 503);
+  }
+}
+
 export default {
   async fetch(request, env) {
     const path = new URL(request.url).pathname;
+    if (path === "/api/contact") return receiveContact(request, env);
     if (!["/api/store-ready", "/api/download"].includes(path)) return env.ASSETS.fetch(request);
     try {
       if (!env.PADDLE_API_KEY || !env.DOWNLOADS) return message("The shop is temporarily unavailable.", 503);
