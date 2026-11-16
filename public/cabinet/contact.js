@@ -3,14 +3,17 @@ const feedback = document.querySelector('#sent');
 form.addEventListener('submit', async event => {
   event.preventDefault();
   const button = form.querySelector('button');
+  if (button.disabled) return;
   button.disabled = true;
   feedback.textContent = 'Sending your message…';
   try {
     const response = await fetch(form.action, {
       method: 'POST',
-      body: new URLSearchParams(new FormData(form)),
+      body: new FormData(form),
+      headers: { Accept: 'application/json' },
     });
-    if (!response.ok) throw new Error();
+    const result = await response.json();
+    if (!response.ok || result.success !== true) throw new Error();
     form.reset();
     feedback.textContent = 'Thank you. Your message has been received.';
   } catch {
