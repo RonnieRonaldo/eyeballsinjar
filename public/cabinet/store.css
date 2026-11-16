@@ -10,3 +10,6 @@ figure{margin:0}figure img{width:100%;height:auto;display:block;border:1px solid
 .eye-details figcaption{line-height:1.4}
 
 .display-notes{padding-block:2.5rem;border-top:1px solid var(--rim)}.display-notes p{max-width:74ch}.lid-pair{display:grid;grid-template-columns:1fr 1fr;gap:1rem}.extras img{height:auto;aspect-ratio:auto;object-fit:contain}
+
+.collection-buy{grid-column:1/-1}.guide-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);align-items:center;gap:clamp(24px,5vw,72px);padding-block:clamp(30px,5vw,64px)}.guide-row+.guide-row{border-top:1px solid var(--rim)}.guide-row>figure{width:min(100%,380px);justify-self:center}.photo-guide .lid-pair{align-items:start}.guide-end{padding-block:3rem}.guide-end p{max-width:68ch}.photo-guide a{font-weight:600}.photo-guide .buy{margin-block:.5rem}
+@media(max-width:700px){.guide-row{grid-template-columns:1fr}.photo-guide .inner figure{max-width:100%}.photo-guide .lid-pair{gap:10px}}
